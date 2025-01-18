@@ -3,36 +3,41 @@ package com.elgg.literalura.model;
 import com.elgg.literalura.model.dto.BookData;
 import jakarta.persistence.*;
 
-import java.util.List;
-
 @Entity
 @Table(name = "books")
 public class Book {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
+    private Long id;
 
     @Column(unique = true)
     private String title;
 
-    private List<String> languages;
+    @ManyToOne(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "author_id")
+    private Author author;
 
-    private int dowload_count;
+    @Column(name = "download_count")
+    private int downloadCount;
 
-    public Book(BookData bookData) {
-        this.title = bookData.title();
-        this.languages = bookData.languages();
-        this.dowload_count = bookData.dowload_count();
-    }
+    @Enumerated(EnumType.STRING)
+    private Language language;
 
     public Book() {}
 
+    public Book(BookData bookData) {
+        this.title = bookData.title();
+        this.author = new Author(bookData.author().getFirst());
+        this.downloadCount = bookData.dowload_count();
+        this.language = Language.fromString(bookData.language().getFirst());
+    }
+
     public Long getId() {
-        return Id;
+        return id;
     }
 
     public void setId(Long id) {
-        Id = id;
+        this.id = id;
     }
 
     public String getTitle() {
@@ -43,28 +48,37 @@ public class Book {
         this.title = title;
     }
 
-    public List<String> getLanguages() {
-        return languages;
+    public Author getAuthor() {
+        return author;
     }
 
-    public void setLanguages(List<String> languages) {
-        this.languages = languages;
+    public void setAuthor(Author author) {
+        this.author = author;
     }
 
-    public int getDowload_count() {
-        return dowload_count;
+    public int getDownloadCount() {
+        return downloadCount;
     }
 
-    public void setDowload_count(int dowload_count) {
-        this.dowload_count = dowload_count;
+    public void setDownloadCount(int downloadCount) {
+        this.downloadCount = downloadCount;
+    }
+
+    public Language getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(Language language) {
+        this.language = language;
     }
 
     @Override
     public String toString() {
-        return "\n" + "--- LIBRO ENCONTRADO ---" + "\n" +
+        return "\n" + "--- LIBRO ---" + "\n" +
                 "Titulo: " + title + "\n" +
-                "Lenguajes: " + String.join(", ", languages) + "\n" +
-                "Descargas: " + dowload_count + "\n" +
-                "------------------------" + "\n";
+                "Autor: " + author.getAuthorName() + "\n" +
+                "Lenguaje: " + language + "\n" +
+                "Descargas: " + downloadCount + "\n" +
+                "------";
     }
 }

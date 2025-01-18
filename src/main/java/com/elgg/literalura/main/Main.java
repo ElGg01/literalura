@@ -1,27 +1,26 @@
 package com.elgg.literalura.main;
 
+import com.elgg.literalura.model.Author;
 import com.elgg.literalura.model.Book;
-import com.elgg.literalura.model.dto.BookData;
-import com.elgg.literalura.model.dto.SearchResult;
-import com.elgg.literalura.repository.BookRepository;
-import com.elgg.literalura.service.ConvertData;
-import com.elgg.literalura.service.GutendexAPI;
+import com.elgg.literalura.service.AuthorService;
+import com.elgg.literalura.service.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
-
+@Component
 public class Main {
     private final Scanner scanner = new Scanner(System.in);
-    private final ConvertData convertData = new ConvertData();
-    private final GutendexAPI gutendexAPI =  new GutendexAPI();
 
-    private final BookRepository repository;
+    @Autowired
+    private final BookService bookService = new BookService();
 
-    public Main(BookRepository repository) {
-        this.repository = repository;
-    }
+    @Autowired
+    private final AuthorService authorService = new AuthorService();
 
     private void toGreet(){
         System.out.println("""
@@ -38,21 +37,7 @@ public class Main {
         System.out.println("2. Listar libros guardados.");
         System.out.println("3. Listar autores registrados.");
         System.out.println("4. Listar autores vivos en un año especifico.");
-        System.out.println("5. Listar libros por idioma.");
-    }
-
-    private Book searchBook(String nameBook) {
-        System.out.println("\n" + "Buscando libro, espera...");
-        String result = gutendexAPI.getData("books/?search=" + nameBook.strip()
-                .replace(" ", "%20"));
-        SearchResult result_books = convertData.convertData(result, SearchResult.class);
-
-        if (result_books.results().isEmpty()) {
-            return null;
-        }
-
-        BookData first_book = result_books.results().getFirst();
-        return new Book(first_book);
+        System.out.println("5. Listar libros por idioma.\n");
     }
 
     public void chooseOption(){
@@ -62,6 +47,7 @@ public class Main {
             showMenu();
 
             try {
+                System.out.print("Tu opción: ");
                 option = Integer.parseInt(scanner.nextLine());
             } catch (InputMismatchException e) {
                 System.out.println("Por favor, ingresa un número entero.");
@@ -77,36 +63,23 @@ public class Main {
                 case 1:
                     System.out.println("\n" + "Ingresa el nombre del libro a buscar: ");
                     String nameBook = scanner.nextLine();
-
-                    Book book = searchBook(nameBook);
-
-                    if (book == null) {
-                        System.out.println("No se ha encontrado ningun libro con el nombre " + nameBook + ".");
-                        break;
-                    }
-
-                    Optional<Book> existingBook = repository.findByTitle(book.getTitle());
-
-                    if (existingBook.isPresent()) {
-                        System.out.println("\n" + "El libro " + book.getTitle() + "ya está registrado en la base de datos.");
-                    } else {
-                        System.out.println(book);
-                        repository.save(book);
-                        System.out.println("Libro guardado correctamente.");
-                    }
+                    bookService.searchBook(nameBook);
                     break;
                 case 2:
-                    System.out.println("2");
-                    System.out.println(repository.findAllByOrderByIdAsc());
+                    bookService.printBooksSaved();
                     break;
                 case 3:
-                    System.out.println("3");
+                    authorService.printAuthorsSaved();
                     break;
                 case 4:
-                    System.out.println("4");
+                    System.out.println("\n" + "Ingresa un año para consultar los autores vivos: ");
+                    int year = Integer.parseInt(scanner.nextLine());
+                    authorService.searchAuthorsByYear(year);
                     break;
                 case 5:
-                    System.out.println("5");
+                    System.out.println("\n" + "Ingresa las siglas de un lenguaje: ");
+                    String language = scanner.nextLine();
+                    bookService.filterBookByLang(language);
                     break;
                 default:
                     System.out.println("Selecciona una opción valida.");
